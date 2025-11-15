@@ -1,36 +1,38 @@
 import os
 
-def select_model(query_type: str) -> dict:
-    """
-    Smart router: route between Groq (Llama3) and OpenAI (GPT-4o).
-    No UI change required.
-    """
+# -----------------------------
+# MODEL ROUTING (Groq + OpenAI)
+# -----------------------------
 
-    groq_key = os.getenv("GROQ_API_KEY")
-    llama_model = os.getenv("LLAMA_MODEL", "llama3-8b-8192")
-
-    openai_key = os.getenv("OPENAI_API_KEY")
-    openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
-    # Simple but effective routing rules
-    if query_type in ("definition", "question"):
-        return {
-            "provider": "groq",
-            "model": llama_model,
-            "key": groq_key
-        }
-
-    # Complex → OpenAI (better reasoning)
-    if query_type in ("summarization", "analysis", "comparison"):
-        return {
-            "provider": "openai",
-            "model": openai_model,
-            "key": openai_key
-        }
-
-    # Default
-    return {
+# VALID GROQ MODELS
+GROQ_MODELS = {
+    "default": {
         "provider": "groq",
-        "model": llama_model,
-        "key": groq_key
+        "model": "llama3-8b-8192",      # 100% valid model
+        "key": os.getenv("GROQ_API_KEY"),
+        "temperature": 0.1,
+        "max_tokens": 400
     }
+}
+
+# VALID OPENAI MODELS
+OPENAI_MODELS = {
+    "default": {
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "key": os.getenv("OPENAI_API_KEY"),
+        "temperature": 0.1,
+        "max_tokens": 400
+    }
+}
+
+# -----------------------------
+# MODEL SELECTOR
+# -----------------------------
+def select_model(query_type: str):
+    """
+    Chooses the model based on query type.
+    You can expand logic later.
+    """
+    # For now route everything to Groq (FASTER + FREE)
+    return GROQ_MODELS["default"]
