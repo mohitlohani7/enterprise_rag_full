@@ -3,36 +3,53 @@ import os
 # -----------------------------
 # MODEL ROUTING (Groq + OpenAI)
 # -----------------------------
+# Use only validated Groq models here.
+# If you need other models, add only names supported by your Groq account.
 
-# VALID GROQ MODELS
 GROQ_MODELS = {
     "default": {
         "provider": "groq",
-        "model": "llama3-8b-8192",      # 100% valid model
+        "model": "llama3-8b-8192",      # VALID Groq model
         "key": os.getenv("GROQ_API_KEY"),
         "temperature": 0.1,
         "max_tokens": 400
     }
 }
 
-# VALID OPENAI MODELS
 OPENAI_MODELS = {
     "default": {
         "provider": "openai",
-        "model": "gpt-4o-mini",
+        "model": "gpt-4o-mini",         # change if you prefer another valid OpenAI model
         "key": os.getenv("OPENAI_API_KEY"),
-        "temperature": 0.1,
+        "temperature": 0.2,
         "max_tokens": 400
     }
 }
 
-# -----------------------------
-# MODEL SELECTOR
-# -----------------------------
-def select_model(query_type: str):
+
+def select_model(query_type: str, prefer: str = "auto"):
     """
-    Chooses the model based on query type.
-    You can expand logic later.
+    Return a model configuration dict:
+    {
+        "provider": "groq" / "openai",
+        "model": "...",
+        "key": "...",
+        "temperature": 0.1,
+        "max_tokens": 400
+    }
+    prefer: "groq", "openai", or "auto"
     """
-    # For now route everything to Groq (FASTER + FREE)
+    # simple routing for now
+    if prefer == "groq":
+        return GROQ_MODELS["default"]
+    if prefer == "openai":
+        return OPENAI_MODELS["default"]
+
+    # auto: prefer groq if key exists, else openai
+    if GROQ_MODELS["default"].get("key"):
+        return GROQ_MODELS["default"]
+    if OPENAI_MODELS["default"].get("key"):
+        return OPENAI_MODELS["default"]
+
+    # fallback to groq config even if key is None (will error later with clear message)
     return GROQ_MODELS["default"]
