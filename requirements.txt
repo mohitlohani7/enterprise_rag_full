@@ -1,0 +1,14 @@
+langchain
+sentence-transformers
+chromadb
+pdfplumber
+rank_bm25
+fastapi
+uvicorn
+transformers
+torch
+streamlit
+tiktoken
+pydantic
+python-dotenv
+
