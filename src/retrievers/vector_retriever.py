@@ -1,28 +1,39 @@
-from sentence_transformers import SentenceTransformer, util
-from typing import List, Tuple
-import torch
+import chromadb
+from sentence_transformers import SentenceTransformer
+
 
 class VectorRetriever:
-    def __init__(self, chunks: List[str], model_name: str = 'all-MiniLM-L6-v2'):
-        self.model = SentenceTransformer(model_name)
-        self.chunks = chunks
-        self.embeddings = self.model.encode(chunks, convert_to_tensor=True)
+    def __init__(self, persist_directory="data/chroma_store"):
 
-    def search(self, query: str, k: int = 5) -> List[Tuple[str, float]]:
-        if len(self.chunks) == 0:
-            return []
+        # NEW CLIENT (NO SETTINGS REQUIRED)
+        self.client = chromadb.PersistentClient(path=persist_directory)
 
-        q_emb = self.model.encode(query, convert_to_tensor=True)
-        scores = util.cos_sim(q_emb, self.embeddings)[0]
+        # Create or load collection
+        self.collection = self.client.get_or_create_collection(
+            name="rag_collection",
+            metadata={"hnsw:space": "cosine"}
+        )
 
-        # SAFE-K prevent crash if k > available chunks
-        k = min(k, len(self.chunks))
+        # Embedding model
+        self.model = SentenceTransformer("all-MiniLM-L6-v2")
 
-        # torch.topk fails if k > number of elements
-        top_k_scores, top_k_indices = torch.topk(scores, k)
+    def add_documents(self, docs):
+        embeddings = self.model.encode(docs, convert_to_numpy=True)
+        ids = [f"chunk_{i}" for i in range(len(docs))]
 
-        results = []
-        for score, idx in zip(top_k_scores, top_k_indices):
-            results.append((self.chunks[int(idx)], float(score)))
+        self.collection.add(
+            ids=ids,
+            documents=docs,
+            embeddings=embeddings.tolist()
+        )
 
-        return results
+    def search(self, query, k=5):
+        emb = self.model.encode([query], convert_to_numpy=True)
+
+        result = self.collection.query(
+            query_embeddings=emb.tolist(),
+            n_results=k
+        )
+
+        docs = result.get("documents", [[]])[0]
+        return docs

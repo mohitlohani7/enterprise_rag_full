@@ -1,29 +1,18 @@
+from .vector_retriever import VectorRetriever
+from .bm25_retriever import BM25Retriever
+
 class HybridRetriever:
-    def __init__(self, bm25, vector):
-        self.bm25 = bm25
-        self.vector = vector
+    def __init__(self):
+        self.vector = VectorRetriever()
+        self.bm25 = BM25Retriever([])
+
+    def index(self, chunks):
+        self.vector.add_documents(chunks)
+        self.bm25.index(chunks)
 
     def search(self, query, k=5):
-        # safe k
-        total_chunks = len(self.bm25.chunks)
-        if total_chunks == 0:
-            return []
+        vec = self.vector.search(query, k)
+        bm = self.bm25.search(query, k)
 
-        k = min(k, total_chunks)
-
-        bm25_results = self.bm25.search(query, k)
-        vec_results = self.vector.search(query, k)
-
-        combined = bm25_results + vec_results
-        combined = sorted(combined, key=lambda x: x[1], reverse=True)
-
-        # dedupe
-        seen = set()
-        unique = []
-        for chunk, score in combined:
-            if chunk not in seen:
-                seen.add(chunk)
-                unique.append((chunk, score))
-                if len(unique) >= k:
-                    break
-        return unique
+        combined = list(dict.fromkeys(vec + bm))
+        return combined[:k]
