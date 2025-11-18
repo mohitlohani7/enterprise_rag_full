@@ -3,24 +3,28 @@ import os
 # -----------------------------
 # MODEL ROUTING (Groq + OpenAI)
 # -----------------------------
-# Use only validated Groq models here.
-# If you need other models, add only names supported by your Groq account.
+
+VALID_GROQ_MODELS = [
+    "gemma-7b-it",
+    "mixtral-8x7b-32768",
+    "llama3.1-70b-instant",
+    "llama3.1-8b"
+]
 
 GROQ_MODELS = {
     "default": {
         "provider": "groq",
-        "model": "gemma-7b-it",       # Changed model
+        "model": "gemma-7b-it",
         "key": os.getenv("GROQ_API_KEY"),
         "temperature": 0.1,
         "max_tokens": 400
     }
 }
 
-
 OPENAI_MODELS = {
     "default": {
         "provider": "openai",
-        "model": "gpt-4o-mini",         # change if you prefer another valid OpenAI model
+        "model": "gpt-4o-mini",
         "key": os.getenv("OPENAI_API_KEY"),
         "temperature": 0.2,
         "max_tokens": 400
@@ -28,29 +32,35 @@ OPENAI_MODELS = {
 }
 
 
+def validate_groq_model(model_name: str) -> bool:
+    return model_name in VALID_GROQ_MODELS
+
+
+def groq_available() -> bool:
+    conf = GROQ_MODELS["default"]
+    return bool(conf["key"]) and validate_groq_model(conf["model"])
+
+
+def openai_available() -> bool:
+    return bool(OPENAI_MODELS["default"]["key"])
+
+
 def select_model(query_type: str, prefer: str = "auto"):
-    """
-    Return a model configuration dict:
-    {
-        "provider": "groq" / "openai",
-        "model": "...",
-        "key": "...",
-        "temperature": 0.1,
-        "max_tokens": 400
-    }
-    prefer: "groq", "openai", or "auto"
-    """
-    # simple routing for now
+
     if prefer == "groq":
-        return GROQ_MODELS["default"]
+        if groq_available():
+            return GROQ_MODELS["default"]
+        return OPENAI_MODELS["default"]
+
     if prefer == "openai":
-        return OPENAI_MODELS["default"]
-
-    # auto: prefer groq if key exists, else openai
-    if GROQ_MODELS["default"].get("key"):
+        if openai_available():
+            return OPENAI_MODELS["default"]
         return GROQ_MODELS["default"]
-    if OPENAI_MODELS["default"].get("key"):
+
+    if groq_available():
+        return GROQ_MODELS["default"]
+
+    if openai_available():
         return OPENAI_MODELS["default"]
 
-    # fallback to groq config even if key is None (will error later with clear message)
-    return GROQ_MODELS["default"]
+    return OPENAI_MODELS["default"]

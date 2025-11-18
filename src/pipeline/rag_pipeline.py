@@ -5,8 +5,6 @@ from src.ranking.reranker import Reranker
 from groq import Groq
 from openai import OpenAI
 
-import os
-
 
 class RAGPipeline:
     def __init__(self, retriever):
@@ -51,21 +49,16 @@ class RAGPipeline:
 
     def ask(self, query: str, k: int = 5):
         q_type = classify_query(query)
-
-        # 1. SELECT MODEL (Groq or OpenAI)
         model_conf = select_model(q_type, prefer=self.model_choice)
 
-        # 2. RETRIEVE CHUNKS
         candidates = self.retriever.search(query, k)
         reranked = self.reranker.rerank(query, candidates, top_k=k)
 
-        top_chunks = [c[0] for c in reranked]
-        context = "\n\n".join(top_chunks)
+        context = "\n\n".join([c[0] for c in reranked])
 
-        # 3. GENERATE PROMPT
         prompt = f"""
-Use ONLY the following context to answer the question.
-If answer is not present, say: "Not available in documents."
+Use ONLY the following context to answer.
+If missing, say: "Not available in documents."
 
 Question:
 {query}
@@ -78,23 +71,18 @@ Answer:
 
         answer = None
 
-        # 4. MAIN CALL — IF GROQ
         if model_conf["provider"] == "groq":
             answer = self._safe_groq(model_conf, prompt)
             if answer is None:
-                print("➡ Groq failed — trying OpenAI…")
                 fallback = select_model(q_type, "openai")
                 answer = self._safe_openai(fallback, prompt)
 
-        # 5. MAIN CALL — IF OPENAI
         else:
             answer = self._safe_openai(model_conf, prompt)
             if answer is None:
-                print("➡ OpenAI failed — trying Groq…")
                 fallback = select_model(q_type, "groq")
                 answer = self._safe_groq(fallback, prompt)
 
-        # 6. FINAL SAFETY
         if answer is None:
             answer = "⚠ LLM call failed. Check your GROQ_API_KEY and OPENAI_API_KEY."
 
