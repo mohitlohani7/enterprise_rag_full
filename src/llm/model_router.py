@@ -9,7 +9,7 @@ import os
 GROQ_MODELS = {
     "default": {
         "provider": "groq",
-        "model": "llama3-8b-8192",      # VALID Groq model
+        "model": "llama3.1-8b-instant",   # NEW VALID MODEL
         "key": os.getenv("GROQ_API_KEY"),
         "temperature": 0.1,
         "max_tokens": 400
