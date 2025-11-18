@@ -9,12 +9,13 @@ import os
 GROQ_MODELS = {
     "default": {
         "provider": "groq",
-        "model": "llama3.1-8b-instant",   # NEW VALID MODEL
+        "model": "gemma-7b-it",       # Changed model
         "key": os.getenv("GROQ_API_KEY"),
         "temperature": 0.1,
         "max_tokens": 400
     }
 }
+
 
 OPENAI_MODELS = {
     "default": {
